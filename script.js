@@ -74,6 +74,167 @@ document.addEventListener("DOMContentLoaded", () => {
     targetScore: parseInt(document.getElementById("target-score").value) || 0,
   });
 
+  
+  // Apply saved settings to the form
+  const applySettingsToForm = (settings) => {
+    if (!settings || !settings.ops || !settings.ranges) return;
+
+    document.getElementById("addition").checked =
+      Boolean(settings.ops.add);
+
+    document.getElementById("subtraction").checked =
+      Boolean(settings.ops.sub);
+
+    document.getElementById("multiplication").checked =
+      Boolean(settings.ops.mul);
+
+    document.getElementById("division").checked =
+      Boolean(settings.ops.div);
+
+    const add = settings.ranges.add || [];
+    const mul = settings.ranges.mul || [];
+
+    const fields = [
+      ["add-min", add[0]],
+      ["add-max", add[1]],
+      ["add-min-2", add[2]],
+      ["add-max-2", add[3]],
+      ["mul-min", mul[0]],
+      ["mul-max", mul[1]],
+      ["mul-min-2", mul[2]],
+      ["mul-max-2", mul[3]]
+    ];
+
+    fields.forEach(([id, value]) => {
+      if (value !== undefined && Number.isFinite(Number(value))) {
+        document.getElementById(id).value = value;
+      }
+    });
+
+    if (settings.duration !== undefined) {
+      document.getElementById("duration").value =
+        settings.duration;
+    }
+
+    if (settings.targetScore !== undefined) {
+      document.getElementById("target-score").value =
+        settings.targetScore;
+    }
+  };
+
+  // Save settings in the URL
+  const saveSettingsToURL = () => {
+    const settings = getSettingsFromForm();
+    const params = new URLSearchParams();
+
+    const enabledOps = Object.keys(settings.ops)
+      .filter((op) => settings.ops[op]);
+
+    params.set("ops", enabledOps.join(","));
+
+    params.set("addMin", settings.ranges.add[0]);
+    params.set("addMax", settings.ranges.add[1]);
+    params.set("addMin2", settings.ranges.add[2]);
+    params.set("addMax2", settings.ranges.add[3]);
+
+    params.set("mulMin", settings.ranges.mul[0]);
+    params.set("mulMax", settings.ranges.mul[1]);
+    params.set("mulMin2", settings.ranges.mul[2]);
+    params.set("mulMax2", settings.ranges.mul[3]);
+
+    params.set("duration", settings.duration);
+    params.set("targetScore", settings.targetScore);
+
+    const newURL =
+      window.location.pathname +
+      "?" +
+      params.toString() +
+      window.location.hash;
+
+    window.history.replaceState(null, "", newURL);
+  };
+
+  // Restore settings from the URL
+  const loadSettingsFromURL = () => {
+    const params = new URLSearchParams(
+      window.location.search
+    );
+
+    if (!params.has("ops")) return false;
+
+    const settings = getSettingsFromForm();
+    const enabledOps = (params.get("ops") || "").split(",");
+
+    settings.ops = {
+      add: enabledOps.includes("add"),
+      sub: enabledOps.includes("sub"),
+      mul: enabledOps.includes("mul"),
+      div: enabledOps.includes("div")
+    };
+
+    const readNumber = (name, fallback) => {
+      const value = params.get(name);
+
+      if (
+        value === null ||
+        value.trim() === "" ||
+        !Number.isFinite(Number(value))
+      ) {
+        return fallback;
+      }
+
+      return Number(value);
+    };
+
+    settings.ranges.add = [
+      readNumber("addMin", settings.ranges.add[0]),
+      readNumber("addMax", settings.ranges.add[1]),
+      readNumber("addMin2", settings.ranges.add[2]),
+      readNumber("addMax2", settings.ranges.add[3])
+    ];
+
+    settings.ranges.mul = [
+      readNumber("mulMin", settings.ranges.mul[0]),
+      readNumber("mulMax", settings.ranges.mul[1]),
+      readNumber("mulMin2", settings.ranges.mul[2]),
+      readNumber("mulMax2", settings.ranges.mul[3])
+    ];
+
+    settings.duration =
+      readNumber("duration", settings.duration);
+
+    settings.targetScore =
+      readNumber("targetScore", settings.targetScore);
+
+    applySettingsToForm(settings);
+    return true;
+  };
+
+  // Save settings in this browser
+  const saveSettingsToStorage = () => {
+    try {
+      localStorage.setItem(
+        "zetamacSettings",
+        JSON.stringify(getSettingsFromForm())
+      );
+    } catch (error) {
+      console.warn("Could not save settings in this browser.", error);
+    }
+  };
+
+  // Load settings saved in this browser
+  const loadSettingsFromStorage = () => {
+    try {
+      const saved = localStorage.getItem("zetamacSettings");
+
+      if (!saved) return false;
+
+      applySettingsToForm(JSON.parse(saved));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
   const getRandomInt = (min, max) =>
     Math.floor(Math.random() * (max - min + 1)) + min;
 
@@ -190,6 +351,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const startGame = () => {
     gameSettings = getSettingsFromForm();
+    
+    saveSettingsToURL();
+    saveSettingsToStorage();
+    
     score = 0;
     gameDuration = gameSettings.duration;
     problemHistory = [];
@@ -416,6 +581,21 @@ document.addEventListener("DOMContentLoaded", () => {
       handleSort(th.dataset.sort);
     });
   });
+
+  // Restore saved settings when the page opens
+  if (!loadSettingsFromURL()) {
+    loadSettingsFromStorage();
+  }
+
+  // Save settings whenever the user changes a field
+  document
+    .querySelectorAll("#settings-view input, #settings-view select")
+    .forEach((input) => {
+      input.addEventListener("change", () => {
+        saveSettingsToStorage();
+        saveSettingsToURL();
+      });
+    });
 
   showView("settings");
 });
