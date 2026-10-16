@@ -583,7 +583,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Restore saved settings when the page opens
-  if (!loadSettingsFromURL()) {
+  if (loadSettingsFromURL()) {
      saveSettingsToStorage();
 } else {
     loadSettingsFromStorage();
