@@ -92,6 +92,7 @@ h1, h2, h3 {
 #timer {
     flex: 1;
     text-align: left;
+    visibility: hidden;
 }
 #score {
     flex: 1;
@@ -107,6 +108,7 @@ h1, h2, h3 {
     font-family: monospace;
     padding: 4px 12px;
     border-radius: 4px;
+    visibility: hidden;
 }
 
 .pace-ahead {
