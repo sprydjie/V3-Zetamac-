@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   // Game View Elements
   const startBtn = document.getElementById("start-btn");
+  const bestScoreDisplay = document.getElementById("best-score-display");
   const timerDisplay = document.getElementById("timer");
   const scoreDisplay = document.getElementById("score");
   const problemText = document.getElementById("problem-text");
@@ -235,6 +236,59 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
   };
+  // Create a separate record for each game configuration
+const getBestScoreKey = (settings) => {
+    const recordSettings = {
+        ops: settings.ops,
+        ranges: settings.ranges,
+        duration: settings.duration
+        targetScore: settings.targetScore
+    };
+
+    return "zetamacBestScore:" + JSON.stringify(recordSettings);
+};
+
+// Load the saved record
+const getBestScore = (settings) => {
+    try {
+        const savedScore = localStorage.getItem(
+            getBestScoreKey(settings)
+        );
+
+        return savedScore === null ? null : Number(savedScore);
+    } catch (error) {
+        console.warn("Could not load best score.", error);
+        return null;
+    }
+};
+
+// Display the record on the start screen
+const updateBestScoreDisplay = () => {
+    const bestScore = getBestScore(getSettingsFromForm());
+
+    if (bestScore === null) {
+        bestScoreDisplay.textContent = "Personal best: —";
+    } else {
+        bestScoreDisplay.textContent =
+            `Personal best: ${bestScore}`;
+    }
+};
+
+// Save the record if the current score is higher
+const saveBestScore = () => {
+    try {
+        const key = getBestScoreKey(gameSettings);
+        const previousBest = localStorage.getItem(key);
+
+        if (previousBest === null || score > Number(previousBest)) {
+            localStorage.setItem(key, String(score));
+        }
+    } catch (error) {
+        console.warn("Could not save best score.", error);
+    }
+
+    updateBestScoreDisplay();
+};
   const getRandomInt = (min, max) =>
     Math.floor(Math.random() * (max - min + 1)) + min;
 
@@ -435,6 +489,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const endGame = () => {
     clearInterval(timerInterval);
+    saveBestScore();
     showView("results");
     displayAnalysis();
     nextProblem();
@@ -596,8 +651,10 @@ document.addEventListener("DOMContentLoaded", () => {
       input.addEventListener("change", () => {
         saveSettingsToStorage();
         saveSettingsToURL();
+        updateBestScoreDisplay();
       });
     });
 
   showView("settings");
+  updateBestScoreDisplay();
 });
