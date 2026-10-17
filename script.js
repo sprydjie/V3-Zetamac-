@@ -241,7 +241,7 @@ const getBestScoreKey = (settings) => {
     const recordSettings = {
         ops: settings.ops,
         ranges: settings.ranges,
-        duration: settings.duration
+        duration: settings.duration,
         targetScore: settings.targetScore
     };
 
